@@ -67,18 +67,40 @@ function first_child_redirect_module_implements_alter(&$implementations, $hook) 
   }
 }
 
+/**
+ * Implements hook_cron(). Get or set cron status.
+ */
+function first_child_redirect_cron($returnState = false)
+{
+    static $cronRunning;
+    
+    if (true === $returnState) {
+        return $cronRunning;
+    }
+    
+    $cronRunning = true;
+}
 
 /**
  * Implements hook_node_view().
  */
-function first_child_redirect_node_view($node) {
-  global $user;
+function first_child_redirect_node_view($node, $view_mode) {
+
+    global $user;
+    
+  if ('full' !== $view_mode) {
+    // Ignore non-full view mode.
+    return;
+  }
+    
+    // is called during cron run ? 
+  $isCron = first_child_redirect_cron(true);
   module_load_include('inc', 'ds_extras', 'includes/ds_extras.pages');
   $child_redirect = variable_get('first_child_redirect_nid_' . $node->nid);
   // Ensure the node has child redirect enabled and
   // that the current user doesn't
   // have bypass access for child redirects.
-  if ($child_redirect &&
+  if (!$isCron && $child_redirect &&
     !user_access(FIRST_CHILD_REDIRECT_BYPASS_PERMISSION, $user)) {
     if (!empty($node->menu_node_links)) {
       $mlid_keys = array_keys($node->menu_node_links);
